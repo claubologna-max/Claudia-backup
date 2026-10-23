@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Admin | Claudia Martins</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#171d21;color:#20282d;min-height:100vh}.wrap{width:min(1100px,92%);margin:0 auto;padding:40px 0}.card{background:#f5f1e8;border-radius:18px;padding:28px;box-shadow:0 18px 55px rgba(0,0,0,.35)}.login{width:min(460px,100%);margin:8vh auto}.brand{color:#385a55;margin:0 0 6px}.sub{color:#657177;margin:0 0 24px}label{display:block;font-weight:700;margin:14px 0 6px}input{width:100%;padding:12px;border:1px solid #aeb7ba;border-radius:9px;font:inherit}.btn{border:0;border-radius:9px;padding:11px 18px;font-weight:700;cursor:pointer;background:#385a55;color:#fff}.btn.sec{background:#d9dfe1;color:#273238}.login .btn{width:100%;margin-top:18px}.status{min-height:20px;margin-top:12px;color:#9c3535}.top{display:flex;align-items:center;justify-content:space-between;gap:15px;margin-bottom:20px}.top h1{margin:0}.tablebox{overflow:auto;background:#fff;border-radius:12px}.table{width:100%;border-collapse:collapse;min-width:760px}.table th,.table td{text-align:left;padding:13px;border-bottom:1px solid #e4e7e8;vertical-align:top}.table th{background:#e8eeeb;color:#314640}.table td:nth-child(3){max-width:420px}.vazio{text-align:center;padding:30px;color:#657177}.hide{display:none}.meta{color:#657177;font-size:14px;margin:0 0 15px}@media(max-width:650px){.wrap{padding:20px 0}.card{padding:20px}.top{align-items:flex-start;flex-direction:column}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<section id="loginView" class="card login"><h1 class="brand">Área Administrativa</h1><p class="sub">Claudia Martins • acesso restrito</p><form id="loginForm"><label for="email">E-mail</label><input id="email" type="email" required autocomplete="username"><label for="senha">Senha</label><input id="senha" type="password" required autocomplete="current-password"><button class="btn" type="submit">Entrar</button><p id="loginStatus" class="status" role="status"></p></form></section>
+<section id="adminView" class="card hide"><div class="top"><div><h1>Contatos do portfólio</h1><p class="meta" id="usuario"></p></div><button id="sair" class="btn sec">Sair</button></div><p class="meta" id="resumo">Carregando contatos...</p><div class="tablebox"><table class="table"><thead><tr><th>Nome</th><th>E-mail</th><th>Assunto / motivo</th><th>Recebido em</th></tr></thead><tbody id="lista"></tbody></table></div><p id="adminStatus" class="status"></p></section>
+</div>
+<script>
+const SB_URL='https://lpcpvqgiwvznxgltqqsu.supabase.co';
+const SB_KEY='sb_publishable_UIuXQerbc_JIKUau4J7Jpw_L77U1-e3';
+const db=window.supabase.createClient(SB_URL,SB_KEY);
+const loginView=document.getElementById('loginView'),adminView=document.getElementById('adminView'),loginForm=document.getElementById('loginForm'),loginStatus=document.getElementById('loginStatus'),adminStatus=document.getElementById('adminStatus'),lista=document.getElementById('lista');
+function esc(v=''){return String(v).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
+async function mostrarAdmin(session){loginView.classList.add('hide');adminView.classList.remove('hide');document.getElementById('usuario').textContent=session.user.email;await carregar()}
+async function carregar(){adminStatus.textContent='';const {data,error}=await db.from('contatos').select('nome,email,motivo,criado_em').order('criado_em',{ascending:false});if(error){document.getElementById('resumo').textContent='';adminStatus.textContent='Acesso aos contatos ainda não foi autorizado no banco de dados.';return}document.getElementById('resumo').textContent=`${data.length} contato(s) encontrado(s)`;lista.innerHTML=data.length?data.map(x=>`<tr><td>${esc(x.nome)}</td><td>${esc(x.email)}</td><td>${esc(x.motivo)}</td><td>${x.criado_em?new Date(x.criado_em).toLocaleString('pt-BR'):'-'}</td></tr>`).join(''):`<tr><td colspan="4" class="vazio">Nenhum contato encontrado.</td></tr>`}
+loginForm.addEventListener('submit',async e=>{e.preventDefault();loginStatus.textContent='Entrando...';const {data,error}=await db.auth.signInWithPassword({email:document.getElementById('email').value.trim(),password:document.getElementById('senha').value});if(error){loginStatus.textContent='E-mail ou senha inválidos.';return}loginForm.reset();loginStatus.textContent='';await mostrarAdmin(data.session)});
+document.getElementById('sair').addEventListener('click',async()=>{await db.auth.signOut();adminView.classList.add('hide');loginView.classList.remove('hide')});
+(async()=>{const {data}=await db.auth.getSession();if(data.session)await mostrarAdmin(data.session)})();
+</script>
+</body></html>
